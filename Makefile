@@ -16,14 +16,14 @@ Dockerfile: Dockerfile.in Makefile
 	sed "s/\$${ARCH_VERSION}/$(ARCH_VERSION)/; s/\$${REPOSITORY}/$(DOCKER_REPOSITORY)/; s/\$${DATE}/$(DATE)/; s/\$${COUNTRY}/$(COUNTRY)/" $(<) >$(@)
 
 Dockerfile.multilib: Dockerfile.in Makefile
-	sed "s/^FROM $(DOCKER_REPOSITORY)\\/archlinux-base:$(ARCH_VERSION)$$/FROM $(DOCKER_REPOSITORY)\\/archlinux-base-multilib:$(ARCH_VERSION)/; s/\$${ARCH_VERSION}/$(ARCH_VERSION)/; s/\$${REPOSITORY}/$(DOCKER_REPOSITORY)/; s/\$${DATE}/$(DATE)/; s/\$${COUNTRY}/$(COUNTRY)/" $(<) >$(@)
+	sed "s/^FROM \$${REPOSITORY}\\/archlinux-base:\$${ARCH_VERSION}$$/FROM $(DOCKER_REPOSITORY)\\/archlinux-base-multilib:$(ARCH_VERSION)/; s/\$${ARCH_VERSION}/$(ARCH_VERSION)/; s/\$${REPOSITORY}/$(DOCKER_REPOSITORY)/; s/\$${DATE}/$(DATE)/; s/\$${COUNTRY}/$(COUNTRY)/" $(<) >$(@)
 
 attach:
 	docker run --interactive=true --tty=true --rm=true --name="$(NAME)-$(ARCH_VERSION)-attach" --entrypoint=/bin/bash "$(DOCKER_REPOSITORY)/$(NAME):$(ARCH_VERSION)"
 
 refresh: Dockerfile.in
 	sed "s/\$${ARCH_VERSION}/$(ARCH_VERSION)/; s/\$${REPOSITORY}/$(DOCKER_REPOSITORY)/; s/\$${DATE}/$(DATE)/; s/\$${COUNTRY}/$(COUNTRY)/" $(<) >Dockerfile
-	sed "s/^FROM $(DOCKER_REPOSITORY)\\/archlinux-base:$(ARCH_VERSION)$$/FROM $(DOCKER_REPOSITORY)\\/archlinux-base-multilib:$(ARCH_VERSION)/; s/\$${ARCH_VERSION}/$(ARCH_VERSION)/; s/\$${REPOSITORY}/$(DOCKER_REPOSITORY)/; s/\$${DATE}/$(DATE)/; s/\$${COUNTRY}/$(COUNTRY)/" $(<) >Dockerfile.multilib
+	sed "s/^FROM \$${REPOSITORY}\\/archlinux-base:\$${ARCH_VERSION}$$/FROM $(DOCKER_REPOSITORY)\\/archlinux-base-multilib:$(ARCH_VERSION)/; s/\$${ARCH_VERSION}/$(ARCH_VERSION)/; s/\$${REPOSITORY}/$(DOCKER_REPOSITORY)/; s/\$${DATE}/$(DATE)/; s/\$${COUNTRY}/$(COUNTRY)/" $(<) >Dockerfile.multilib
 	$(MAKE)
 
 run:
