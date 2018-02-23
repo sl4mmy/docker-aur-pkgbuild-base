@@ -1,0 +1,45 @@
+FROM ${REPOSITORY}/archlinux-base:${ARCH_VERSION}
+
+ENV ARCH_VERSION ${ARCH_VERSION}
+
+ENV REFRESHED_AT ${DATE}
+
+# Ensure base-devel group is installed
+RUN [ "/usr/bin/pacman", "--noconfirm", "--sync", "--quiet", "base-devel" ]
+
+# Create sudo group
+RUN [ "/usr/sbin/groupadd", "sudo" ]
+
+# Create a system user named _build and add it to the sudo group
+RUN [ "/usr/sbin/useradd", "--system", "--user-group", "--groups", "sudo", "--shell", "/usr/bin/nologin", "_build" ]
+
+# Ensure _build can install build dependencies
+ADD build.sudoers /etc/sudoers.d/_build
+
+# Patch makepkg(1) so it doesn't unconditionally try to create & chmod $srcdir
+COPY usr_bin_makepkg.diff /tmp/
+WORKDIR /usr/bin
+RUN /usr/bin/patch -p0 </tmp/usr_bin_makepkg.diff
+
+# Configure makepkg(1)
+RUN [ "/usr/sbin/sed", "--in-place", "/^#BUILDDIR=/ s/^#BUILDDIR=.*$/BUILDDIR=\\/opt\\/build/", "/etc/makepkg.conf" ]
+RUN [ "/usr/sbin/sed", "--in-place", "/^#PKGDEST=/ s/^#PKGDEST=.*$/PKGDEST=\\/opt\\/output/", "/etc/makepkg.conf" ]
+RUN [ "/usr/sbin/sed", "--in-place", "/^#SRCDEST=/ s/^#SRCDEST=.*$/SRCDEST=\\/opt\\/src/", "/etc/makepkg.conf" ]
+
+# Create work dirs w/ correct owner & mode
+RUN [ "/usr/sbin/mkdir", "/opt/build", "/opt/output", "/opt/src" ]
+RUN [ "/usr/sbin/chown", "_build:_build", "/opt/build", "/opt/output", "/opt/src" ]
+
+# Declare volumes for src output, build output & final package destination
+# TODO: uncomment line below when Docker supports overriding noexec mount flag on tmpfs volumes (see: https://github.com/moby/moby/issues/32131)
+# VOLUME /opt/build
+VOLUME /opt/output
+# TODO: uncomment line below when Docker supports setting uid/gid on tmpfs volumes
+# VOLUME /opt/src
+
+# Ensure downstream images stay up to date
+ONBUILD RUN [ "/usr/bin/reflector", "--save", "/etc/pacman.d/mirrorlist", "--sort", "rate", "--age", "6", "--country", "${COUNTRY}", "--fastest", "10", "--latest", "10", "--number", "10", "--protocol", "http" ]
+ONBUILD RUN [ "/usr/bin/pacman", "--sync", "--quiet", "--refresh" ]
+ONBUILD RUN [ "/usr/bin/pacman", "--noconfirm", "--sync", "--quiet", "archlinux-keyring" ]
+ONBUILD RUN [ "/usr/bin/pacman", "--noconfirm", "--sync", "--quiet", "pacman-mirrorlist" ]
+ONBUILD RUN [ "/usr/bin/pacman", "--noconfirm", "--sync", "--quiet", "--sysupgrade" ]
